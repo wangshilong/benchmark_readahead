@@ -1,7 +1,7 @@
 #!/bin/bash
 
 TEST_OUTPUT_FILE="/var/log/test_results"
-LUSTRE_MNT="/mnt/lustre"
+LUSTRE_MNT="/mnt/lustre/test_dir"
 TEST_FILE="$LUSTRE_MNT/test_file"
 IOR=""
 
@@ -33,7 +33,7 @@ FileSize=$(($FileSize * 2)) #double memory size
 [ $FileSize -lt 256 ] && FileSize=256
 
 echo "XXXXX Start test `date` XXXXX" | tee -a $TEST_OUTPUT_FILE
-rec_size_array=(100b 4k 32k 512k 1M 4M 16M)
+rec_size_array=(1k 4k 32k 512k 1m 4m 16m)
 i_array=(1 2 3 5 8)
 # Start normal buffer size testing, only one thread testing
 for record_size in ${rec_size_array[@]} 
@@ -82,7 +82,7 @@ for i in `seq 1 $NR_THREAD`
 do
 	TEST_FILES="$TEST_FILES $TEST_FILE$i"
 done
-COMMAND="iozone -w -c -t $NR_THREAD -s $FileSize"G" -r 1M -F $TEST_FILES"
+COMMAND="iozone -w -c -t $NR_THREAD -s $FileSize"G" -r 1m -F $TEST_FILES"
 echo "$COMMAND" | tee -a $TEST_OUTPUT_FILE
 #initial write data, ignore this results
 $COMMAND -i0 >& /dev/null
