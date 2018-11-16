@@ -15,6 +15,7 @@ function check_depedency()
 {
 	which iozone >&/dev/null || error "iozone needed"
 	which git >& /dev/null || error "git needed"
+	which tar >& /dev/null || error "tar needed"
 }
 check_depedency
 
@@ -22,6 +23,7 @@ check_depedency
 #We need disable read/write cache on OSS side too..
 function prepare_test()
 {
+	mkdir -p $LUSTRE_MNT
 	lfs setstripe -c -1 $LUSTRE_MNT || error "failed to setstripe"
 }
 prepare_test
@@ -35,21 +37,21 @@ FileSize=$(($FileSize * 2)) #double memory size
 echo "XXXXX Start test `date` XXXXX" | tee -a $TEST_OUTPUT_FILE
 rec_size_array=(1k 4k 32k 512k 1m 4m 16m)
 i_array=(1 2 3 5 8)
+#initial write data, ignore this results
+COMMAND="iozone -w -c -t1 -s $FileSize"G" -r $record_size -F $TEST_FILE"
+$COMMAND -i0 >& /dev/null
 # Start normal buffer size testing, only one thread testing
-for record_size in ${rec_size_array[@]} 
+for record_size in ${rec_size_array[@]}
 do
-	COMMAND="iozone -w -c -t1 -s $FileSize"G" -r $record_size -F $TEST_FILE"
 	echo "$COMMAND" | tee -a $TEST_OUTPUT_FILE
-	#initial write data, ignore this results
-	$COMMAND -i0 >& /dev/null
 	for i in ${i_array[@]}
 	do
 		#drop memory firstly
 		echo 3 > /proc/sys/vm/drop_caches
 		$COMMAND -i$i | grep Children | tee -a $TEST_OUTPUT_FILE
 	done
-	rm -f $TEST_FILE
 done
+rm -f $TEST_FILE
 
 #start MMAP test for 4K
 COMMAND="iozone -B -w -c -t1 -s $FileSize"G" -r 4k -F $TEST_FILE"
@@ -64,7 +66,7 @@ do
 done
 rm -f $TEST_FILE
 
-pushd  $LUSTRE_MNT
+pushd $LUSTRE_MNT
 	git clone git://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git
 	#reset to specific commit
 	git reset --hard ccda4af0f4b92f7b4c308d3acc262f4a7e3affad
